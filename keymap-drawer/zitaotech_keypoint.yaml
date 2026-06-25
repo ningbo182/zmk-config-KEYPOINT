@@ -218,7 +218,7 @@ layers:
   - LGUI
   - LALT
   - ''
-  - RAISE
+  - {t: ▽, type: trans}
   - SPACE
   - '&mkp MB1'
   - '&mkp MB1'
@@ -249,10 +249,10 @@ layers:
   - ''
   - ''
   - ''
-  - ''
-  - ''
-  - ''
-  - ''
+  - LEFT ARROW
+  - DOWN ARROW
+  - UP ARROW
+  - RIGHT
   - ''
   - ''
   - ''
