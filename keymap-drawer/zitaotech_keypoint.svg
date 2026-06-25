@@ -330,14 +330,14 @@ path.combo {
 </g>
 <g transform="translate(252, 203)" class="key keypos-46">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">ESCAPE</text>
-<text x="0" y="24" class="key hold">LCMD</text>
+<text x="0" y="0" class="key tap">ESC</text>
+<text x="0" y="24" class="key hold">LGUI</text>
 </g>
 <g transform="translate(309, 226) rotate(11.93)" class="key keypos-47">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">SPACE</text>
-<a href="#RESERVE">
-<text x="0" y="24" class="key hold layer-activator">RESERVE</text>
+<a href="#NAVIGATION">
+<text x="0" y="24" class="key hold layer-activator"><tspan style="font-size: 70%">NAVIGATION</tspan></text>
 </a></g>
 <g transform="translate(367, 253) rotate(23.87)" class="key keypos-48">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -1060,8 +1060,8 @@ path.combo {
 </g>
 </g>
 </g>
-<g transform="translate(30, 1384)" class="layer-RESERVE">
-<text x="0" y="28" class="label" id="RESERVE">RESERVE:</text>
+<g transform="translate(30, 1384)" class="layer-NAVIGATION">
+<text x="0" y="28" class="label" id="NAVIGATION">NAVIGATION:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 50)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>

@@ -47,8 +47,8 @@ layers:
   - LGUI
   - LALT
   - MUTE
-  - {t: ESCAPE, h: LCMD}
-  - {t: SPACE, h: RESERVE}
+  - {t: ESC, h: LGUI}
+  - {t: SPACE, h: NAVIGATION}
   - {t: ENTER, h: LOWER}
   - LOWER
   - SPACE
@@ -228,7 +228,7 @@ layers:
   - '-'
   - '='
   - '`'
-  RESERVE:
+  NAVIGATION:
   - ''
   - ''
   - ''
