@@ -13,7 +13,7 @@ layers:
   - O
   - P
   - BSPC
-  - CAPS
+  - LEFT CONTROL
   - {t: A, h: LEFT CONTROL}
   - {t: S, h: LEFT COMMAND}
   - {t: D, h: LEFT ALT}
@@ -22,10 +22,10 @@ layers:
   - '&mkp LCLK'
   - '&mkp LCLK'
   - H
-  - J
-  - K
-  - L
-  - ;
+  - {t: J, h: RSHIFT}
+  - {t: K, h: RIGHT ALT}
+  - {t: L, h: RIGHT GUI}
+  - {t: ;, h: RIGHT CONTROL}
   - ENTER
   - LSHFT
   - Z
