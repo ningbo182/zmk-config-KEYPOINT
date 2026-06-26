@@ -192,9 +192,9 @@ layers:
   - G
   - '&mkp LCLK'
   - '&mkp LCLK'
-  - H
+  - ''
   - {t: J, h: '&mkp MB1'}
-  - K
+  - ''
   - L
   - ;
   - ENTER
