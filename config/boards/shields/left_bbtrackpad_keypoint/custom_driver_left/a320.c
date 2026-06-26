@@ -76,8 +76,8 @@ static struct k_work_q a320_workq;
 #define SLOW_KEY_MULTIPLIER 0.5f
 #define TOUCH_IDLE_TIMEOUT 50 // 30~80ms 看手感
 /* ========= Watch Dog ========= */
-static float scroll_residual_x = 0;
-static float scroll_residual_y = 0;
+static float mouse_residual_x = 0;
+static float mouse_residual_y = 0;
 static uint32_t last_activity_time = 0;
 #define A320_WDT_TIMEOUT 200
 /* ========= global ========= */
@@ -148,6 +148,23 @@ struct a320_data {
     int16_t arrow_residue_x;
     int16_t arrow_residue_y;
 };
+
+#ifdef CONFIG_A320_EXPONENTIAL
+#define A320_MAX_MULT 3.0f
+static inline float a320_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
+    if (delta_ms == 0)
+        delta_ms = 1;
+
+    int dist = abs(dx) + abs(dy);
+    if (dist < 1)
+        return 1.0f;
+
+    float speed = (float)dist / (float)delta_ms;
+    float mult = expf(speed * 1.307357f);
+
+    return (mult > A320_MAX_MULT) ? A320_MAX_MULT : mult;
+}
+#endif
 
 static int a320_read_packet(const struct device *dev, int8_t *dx, int8_t *dy) {
     const struct a320_config *cfg = dev->config;
@@ -258,6 +275,8 @@ static void a320_work_cb(struct k_work *work) {
         data->scroll_residue_y = 0;
         data->arrow_residue_x = 0;
         data->arrow_residue_y = 0;
+        mouse_residual_x = 0;
+        mouse_residual_y = 0;
 
         last_scroll_key_pressed = scroll_key_pressed;
         last_arrow_key_pressed = arrow_key_pressed;
@@ -337,40 +356,39 @@ static void a320_work_cb(struct k_work *work) {
 
         process_arrow_axis(dev, dy, &data->arrow_residue_y, INPUT_BTN_3, INPUT_BTN_2);
     } else if (scroll_key_pressed || capslock) {
-
-        if (just_enter_scroll) {
-            data->scroll_residue_x = dx * SCROLL_X_DIR;
-            data->scroll_residue_y = dy * SCROLL_Y_DIR;
-        }
-        float speed = sqrtf((float)(dx * dx + dy * dy));
-        float scale = (speed > 80)   ? 0.05f
-                      : (speed > 40) ? 0.04f
-                      : (speed > 20) ? 0.03f
-                      : (speed > 5)  ? 0.02f
-                                     : 0.015f;
-        scroll_residual_x += dx * scale;
-        scroll_residual_y += dy * scale;
-
-        int16_t out_x = (int16_t)scroll_residual_x;
-        int16_t out_y = (int16_t)scroll_residual_y;
-
-        scroll_residual_x -= out_x;
-        scroll_residual_y -= out_y;
-        input_report_rel(dev, INPUT_REL_HWHEEL, out_x, false, K_FOREVER);
-        input_report_rel(dev, INPUT_REL_WHEEL, -out_y, true, K_FOREVER);
+        process_scroll_axis(dev, dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, -SCROLL_X_DIR);
+        process_scroll_axis(dev, dy, &data->scroll_residue_y, INPUT_REL_WHEEL, -SCROLL_Y_DIR);
         k_msleep(25);
     } else if (!capslock) {
 
         uint8_t a320_led_brt = indicator_tp_get_last_valid_brightness();
         float a320_factor = 0.4f + 0.01f * a320_led_brt;
 
+#ifdef CONFIG_A320_EXPONENTIAL
+        uint32_t delta = now - data->last_packet_time;
+        float exp_mult = a320_exponential_factor(dx, dy, delta);
+#else
+        float exp_mult = 1.0f;
+#endif
+
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-        float fx = dx * 3 / 4 * a320_factor * slow_mult;
-        float fy = dy * 3 / 4 * a320_factor * slow_mult;
+        float fx = dx * MOUSE_BASE_SPEED * a320_factor * exp_mult * slow_mult;
+        float fy = dy * MOUSE_BASE_SPEED * a320_factor * exp_mult * slow_mult;
 
-        input_report_rel(dev, INPUT_REL_X, (int)fx, false, K_NO_WAIT);
-        input_report_rel(dev, INPUT_REL_Y, (int)fy, true, K_NO_WAIT);
+        mouse_residual_x += fx;
+        mouse_residual_y += fy;
+
+        int out_x = (int)mouse_residual_x;
+        int out_y = (int)mouse_residual_y;
+
+        mouse_residual_x -= out_x;
+        mouse_residual_y -= out_y;
+
+        if (out_x != 0 || out_y != 0) {
+            input_report_rel(dev, INPUT_REL_X, out_x, false, K_NO_WAIT);
+            input_report_rel(dev, INPUT_REL_Y, out_y, true, K_NO_WAIT);
+        }
     } else {
         touched = false;
     }

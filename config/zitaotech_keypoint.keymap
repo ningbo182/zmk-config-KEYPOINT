@@ -117,7 +117,7 @@
             display-name = "MOUSE";
             bindings = <
 &kp TAB           &kp Q     &kp W     &kp E  &kp R     &kp T     &kp Y           &M_kp MB3 U       &kp I     &kp O        &kp P       &kp BSPC
-&kp LEFT_CONTROL  &kp A     &kp S     &kp D  &kp F     &kp G     &mkp LCLK       &mkp LCLK         &kp H     &M_kp MB1 J  &kp K       &kp L        &kp SEMI   &kp ENTER
+&kp LEFT_CONTROL  &kp A     &kp S     &kp D  &kp F     &kp G     &mkp LCLK       &mkp LCLK         &none     &M_kp MB1 J  &none       &kp L        &kp SEMI   &kp ENTER
 &kp LSHFT         &kp Z     &kp X     &kp C  &kp V     &kp B     &msc SCRL_DOWN  &msc SCRL_UP      &none     &none        &kp N       &M_kp MB2 M  &kp COMMA  &kp DOT    &kp FSLH  &kp RSHFT
 &kp LCTRL         &kp LGUI  &kp LALT  &none  &mkp MB2  &mkp MB3  &mkp MB1        &LMouse_sc 0 MB1  &tdRMCLK  &mo 2        &kp C_MUTE  &kp MINUS    &kp EQUAL  &kp GRAVE
             >;

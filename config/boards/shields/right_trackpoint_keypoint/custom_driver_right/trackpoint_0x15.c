@@ -78,8 +78,8 @@ static struct k_work_q tp_workq;
 
 #define SLOW_KEY_MULTIPLIER 0.5f
 
-static float scroll_residual_x = 0;
-static float scroll_residual_y = 0;
+static float mouse_residual_x = 0;
+static float mouse_residual_y = 0;
 /* ========= Watch Dog ========= */
 static uint32_t last_activity_time = 0;
 #define TRACKPOINT_WDT_TIMEOUT 200
@@ -154,7 +154,7 @@ struct trackpoint_data {
 
 /* ========= EXPONENTIAL caculate ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-#define TP_MAX_MULT 2.0f
+#define TP_MAX_MULT 3.0f
 static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
     if (delta_ms == 0)
         delta_ms = 1;
@@ -278,6 +278,8 @@ static void trackpoint_work_cb(struct k_work *work) {
         data->scroll_residue_y = 0;
         data->arrow_residue_x = 0;
         data->arrow_residue_y = 0;
+        mouse_residual_x = 0;
+        mouse_residual_y = 0;
         last_scroll_key_pressed = scroll_key_pressed;
         return;
     }
@@ -332,28 +334,8 @@ static void trackpoint_work_cb(struct k_work *work) {
                            INPUT_BTN_3); // 下
         k_msleep(16);
     } else if (scroll_key_pressed) {
-
-        if (just_enter_scroll) {
-            data->scroll_residue_x = dx * SCROLL_X_DIR;
-            data->scroll_residue_y = dy * SCROLL_Y_DIR;
-        }
-
-        float speed = sqrtf((float)(dx * dx + dy * dy));
-        float scale = (speed > 80)   ? 0.05f
-                      : (speed > 40) ? 0.04f
-                      : (speed > 20) ? 0.03f
-                      : (speed > 5)  ? 0.02f
-                                     : 0.015f;
-        scroll_residual_x += dx * scale;
-        scroll_residual_y += dy * scale;
-
-        int16_t out_x = (int16_t)scroll_residual_x;
-        int16_t out_y = (int16_t)scroll_residual_y;
-
-        scroll_residual_x -= out_x;
-        scroll_residual_y -= out_y;
-        input_report_rel(dev, INPUT_REL_HWHEEL, -out_x, false, K_FOREVER);
-        input_report_rel(dev, INPUT_REL_WHEEL, out_y, true, K_FOREVER);
+        process_scroll_axis(dev, dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
+        process_scroll_axis(dev, dy, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
         k_msleep(25);
 
     } else {
@@ -373,8 +355,19 @@ static void trackpoint_work_cb(struct k_work *work) {
         float fx = dx * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
         float fy = dy * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
 
-        input_report_rel(dev, INPUT_REL_X, -(int)fx, false, K_NO_WAIT);
-        input_report_rel(dev, INPUT_REL_Y, -(int)fy, true, K_NO_WAIT);
+        mouse_residual_x += fx;
+        mouse_residual_y += fy;
+
+        int out_x = (int)mouse_residual_x;
+        int out_y = (int)mouse_residual_y;
+
+        mouse_residual_x -= out_x;
+        mouse_residual_y -= out_y;
+
+        if (out_x != 0 || out_y != 0) {
+            input_report_rel(dev, INPUT_REL_X, -out_x, false, K_NO_WAIT);
+            input_report_rel(dev, INPUT_REL_Y, -out_y, true, K_NO_WAIT);
+        }
     }
 
     last_scroll_key_pressed = scroll_key_pressed;
