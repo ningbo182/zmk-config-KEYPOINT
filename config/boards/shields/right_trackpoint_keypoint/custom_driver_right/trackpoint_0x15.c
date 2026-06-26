@@ -223,8 +223,6 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, i
         input_report_rel(dev, input_code, scroll_ticks, true, K_NO_WAIT);
         *residue %= divisor;
     }
-
-    *residue = (*residue * 3) / 4;
 }
 
 static inline void process_arrow_axis(const struct device *dev, int8_t delta, int16_t *residue,
