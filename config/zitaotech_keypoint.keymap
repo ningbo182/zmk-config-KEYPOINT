@@ -41,10 +41,10 @@
         hm: homerow_mods {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
-            tapping-term-ms = <250>;
+            tapping-term-ms = <200>;
             bindings = <&kp &kp>;
             quick-tap-ms = <160>;
-            flavor = "hold-preferred";
+            flavor = "balanced";
             require-prior-idle-ms = <150>;
         };
     };
