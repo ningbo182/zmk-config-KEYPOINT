@@ -117,7 +117,7 @@ layers:
   RAISE:
   - ESC
   - F1
-  - UP
+  - F2
   - F3
   - F4
   - F5
@@ -128,9 +128,9 @@ layers:
   - F10
   - ''
   - CAPS
-  - LEFT
-  - DOWN
-  - RIGHT
+  - ''
+  - ''
+  - ''
   - ''
   - ''
   - ''
@@ -229,7 +229,7 @@ layers:
   - '='
   - '`'
   NAVIGATION:
-  - {t: ▽, type: trans}
+  - POWER
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
