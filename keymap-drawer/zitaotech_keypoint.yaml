@@ -53,7 +53,7 @@ layers:
   - LOWER
   - SPACE
   - RAISE
-  - MUTE
+  - PLAY
   - '-'
   - '='
   - '`'
