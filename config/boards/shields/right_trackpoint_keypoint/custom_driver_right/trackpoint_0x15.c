@@ -334,7 +334,7 @@ static void trackpoint_work_cb(struct k_work *work) {
     } else if (scroll_key_pressed) {
         process_scroll_axis(dev, dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
         process_scroll_axis(dev, dy, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
-        k_msleep(25);
+        k_msleep(10);
 
     } else {
 
