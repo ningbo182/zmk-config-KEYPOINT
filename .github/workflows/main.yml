@@ -25,6 +25,11 @@ jobs:
           name: firmware
           path: build-artifacts
 
+      - name: Package Firmware into Zip
+        run: |
+          cd build-artifacts
+          zip -r ../firmware.zip .
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -33,5 +38,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            build-artifacts/**/*.uf2
-            build-artifacts/**/*.bin
+            firmware.zip
