@@ -6,6 +6,8 @@
 */
 
 
+#define MOUSE_LAYER_ID 2
+
 / {
     chosen {
         zmk,trackpad_led = &trackpad_led;
@@ -73,7 +75,7 @@
 
 &bbtrackpad_listener {
     status = "okay";
-    input-processors = <&zip_temp_layer 3 1000>,
+    input-processors = <&zip_temp_layer MOUSE_LAYER_ID 500>,
     <&ip_behaviors0>,
     <&ip_behaviors1>,
     <&ip_behaviors2>,
