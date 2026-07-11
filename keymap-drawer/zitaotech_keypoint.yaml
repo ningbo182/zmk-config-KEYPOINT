@@ -173,16 +173,16 @@ layers:
   - '`'
   NAVIGATION:
   - POWER
-  - Gui+F1
-  - Gui+F2
-  - Gui+F3
-  - Gui+F4
-  - Gui+F5
-  - Gui+F6
-  - Gui+F7
-  - Gui+F8
-  - Gui+F9
-  - Gui+F10
+  - Gui+1
+  - Gui+2
+  - Gui+3
+  - Gui+4
+  - Gui+5
+  - Gui+6
+  - Gui+7
+  - Gui+8
+  - Gui+9
+  - Gui+0
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}

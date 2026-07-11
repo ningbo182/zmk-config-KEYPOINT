@@ -919,43 +919,43 @@ path.combo {
 </g>
 <g transform="translate(84, 50)" class="key keypos-1">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F1</text>
+<text x="0" y="0" class="key tap">Gui+1</text>
 </g>
 <g transform="translate(140, 35)" class="key keypos-2">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F2</text>
+<text x="0" y="0" class="key tap">Gui+2</text>
 </g>
 <g transform="translate(196, 28)" class="key keypos-3">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F3</text>
+<text x="0" y="0" class="key tap">Gui+3</text>
 </g>
 <g transform="translate(252, 35)" class="key keypos-4">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F4</text>
+<text x="0" y="0" class="key tap">Gui+4</text>
 </g>
 <g transform="translate(308, 42)" class="key keypos-5">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F5</text>
+<text x="0" y="0" class="key tap">Gui+5</text>
 </g>
 <g transform="translate(560, 42)" class="key keypos-6">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F6</text>
+<text x="0" y="0" class="key tap">Gui+6</text>
 </g>
 <g transform="translate(616, 35)" class="key keypos-7">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F7</text>
+<text x="0" y="0" class="key tap">Gui+7</text>
 </g>
 <g transform="translate(672, 28)" class="key keypos-8">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F8</text>
+<text x="0" y="0" class="key tap">Gui+8</text>
 </g>
 <g transform="translate(728, 35)" class="key keypos-9">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F9</text>
+<text x="0" y="0" class="key tap">Gui+9</text>
 </g>
 <g transform="translate(784, 50)" class="key keypos-10">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">Gui+F10</text>
+<text x="0" y="0" class="key tap">Gui+0</text>
 </g>
 <g transform="translate(840, 50)" class="key trans keypos-11">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key trans"/>
