@@ -207,20 +207,21 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, i
         abs_delta = SCROLL_INPUT_MAX;
     }
 
-    float t = (float)abs_delta / SCROLL_INPUT_MAX;
+    /* Use sqrt to compress the dynamic range:
+     *   light touch (delta=4)  → sqrt(4)  = 2.0
+     *   medium push (delta=16) → sqrt(16) = 4.0
+     *   hard push   (delta=64) → sqrt(64) = 8.0
+     * This makes light touches 2x more responsive relative to
+     * heavy pushes compared to a linear mapping. */
+    float scaled = sqrtf((float)abs_delta);
+    int sign = (delta > 0) ? 1 : -1;
 
-    float f_div = SCROLL_DIVISOR_SLOW - (SCROLL_DIVISOR_SLOW - SCROLL_DIVISOR_FAST) * t;
+    *residue += (int16_t)(scaled * sign * dir_mult);
 
-    int divisor = (int)f_div;
-    if (divisor < 1)
-        divisor = 1;
-
-    *residue += (delta * dir_mult);
-
-    int16_t scroll_ticks = *residue / divisor;
+    int16_t scroll_ticks = *residue / SCROLL_DIVISOR_SLOW;
     if (scroll_ticks != 0) {
         input_report_rel(dev, input_code, scroll_ticks, true, K_NO_WAIT);
-        *residue %= divisor;
+        *residue %= SCROLL_DIVISOR_SLOW;
     }
 }
 
