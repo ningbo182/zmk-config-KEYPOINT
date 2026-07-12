@@ -208,7 +208,6 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, i
     }
 
     float t = (float)abs_delta / SCROLL_INPUT_MAX;
-    t = t * t;
 
     float f_div = SCROLL_DIVISOR_SLOW - (SCROLL_DIVISOR_SLOW - SCROLL_DIVISOR_FAST) * t;
 
