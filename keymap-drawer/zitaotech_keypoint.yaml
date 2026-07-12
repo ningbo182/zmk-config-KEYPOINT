@@ -160,9 +160,9 @@ layers:
   - LCTRL
   - LGUI
   - LALT
-  - ''
-  - '&mkp MB2'
-  - '&mkp MB3'
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
+  - '&tdLMCLK'
   - '&mkp MB1'
   - '&mkp MB1'
   - '&tdRMCLK'
