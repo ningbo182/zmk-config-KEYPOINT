@@ -212,7 +212,7 @@
         SYMBOL_layer {
             bindings = <
 &trans  &kp LEFT_BRACE  &kp AMPERSAND  &kp ASTERISK  &kp LEFT_PARENTHESIS  &kp RIGHT_BRACE        &trans          &trans      &trans  &trans  &trans  &trans
-&trans  &kp COLON       &kp DOLLAR     &kp PERCENT   &kp CARET             &kp PLUS               &trans          &trans      &trans  &trans  &trans  &trans       &trans  &trans
+&trans  &kp COLON       &kp DOLLAR     &kp PERCENT   &kp CARET             &kp PLUS               &trans          &trans      &kp MINUS  &trans  &trans  &trans       &trans  &trans
 &trans  &kp TILDE       &kp EXCL       &kp AT_SIGN   &kp HASH              &kp PIPE               &trans          &trans      &trans  &trans  &trans  &trans       &trans  &trans  &kp QUESTION  &trans
 &trans  &trans          &trans         &trans        &kp LEFT_PARENTHESIS  &kp RIGHT_PARENTHESIS  &kp UNDERSCORE  &mo SYMBOL  &trans  &trans  &trans  &bootloader  &trans  &trans
             >;
