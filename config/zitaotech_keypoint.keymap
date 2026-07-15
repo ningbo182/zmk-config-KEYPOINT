@@ -174,7 +174,7 @@
 &kp LCTRL         &kp LGUI            &kp LALT            &kp C_MUTE      &mt LGUI ESC  &lt_c NAVIG SPACE  &lt_lower_enter ORANGE ENTER  &mo SYMBOL  &lt_c NUMBER SPACE  &mo FUNCTION       &kp C_PLAY       &kp MINUS        &kp EQUAL                    &kp GRAVE
             >;
 
-            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp LEFT RIGHT>;
+            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp C_PREV C_NEXT>;
         };
 
         ORANGE_layer {
