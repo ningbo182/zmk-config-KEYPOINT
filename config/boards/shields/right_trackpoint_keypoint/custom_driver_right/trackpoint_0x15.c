@@ -152,21 +152,23 @@ struct trackpoint_data {
     int16_t arrow_residue_y;
 };
 
-/* ========= EXPONENTIAL caculate ========= */
+/* ========= S-CURVE ACCELERATION ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-#define TP_MAX_MULT 3.0f
+#define TP_MAX_MULT   5.0f
+#define TP_SCURVE_MID 1.2f   /* speed at which acceleration reaches halfway to max */
 static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
     if (delta_ms == 0)
         delta_ms = 1;
 
-    int dist = abs(dx) + abs(dy);
-    if (dist < 1)
+    float dist = sqrtf((float)(dx * dx + dy * dy));
+    if (dist < 0.5f)
         return 1.0f;
 
-    float speed = (float)dist / (float)delta_ms;
-    float mult = expf(speed * 1.307357f);
+    float speed  = dist / (float)delta_ms;
+    float speed2 = speed * speed;
+    float mid2   = TP_SCURVE_MID * TP_SCURVE_MID;
 
-    return (mult > TP_MAX_MULT) ? TP_MAX_MULT : mult;
+    return 1.0f + (TP_MAX_MULT - 1.0f) * (speed2 / (speed2 + mid2));
 }
 #endif
 
@@ -370,7 +372,6 @@ static void trackpoint_work_cb(struct k_work *work) {
     last_scroll_key_pressed = scroll_key_pressed;
     last_arrow_key_pressed = arrow_key_pressed;
     data->last_packet_time = now;
-    k_msleep(5);
 }
 
 /* ========= ★ GPIO Interrupt ========= */
