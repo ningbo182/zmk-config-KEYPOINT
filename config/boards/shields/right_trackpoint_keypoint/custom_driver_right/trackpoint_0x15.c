@@ -146,8 +146,8 @@ struct trackpoint_data {
     struct gpio_callback motion_cb_data;
     struct k_work_delayable enable_irq_work; 
     uint32_t last_packet_time;
-    int16_t scroll_residue_x;
-    int16_t scroll_residue_y;
+    float scroll_residue_x;
+    float scroll_residue_y;
     int16_t arrow_residue_x;
     int16_t arrow_residue_y;
 };
@@ -197,7 +197,7 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
 }
 
 
-static inline void process_scroll_axis(const struct device *dev, int8_t delta, int16_t *residue,
+static inline void process_scroll_axis(const struct device *dev, int8_t delta, float *residue,
                                        uint16_t input_code, int8_t dir_mult) {
     int abs_delta = abs(delta);
 
@@ -209,21 +209,24 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, i
         abs_delta = SCROLL_INPUT_MAX;
     }
 
-    /* Use sqrt to compress the dynamic range:
-     *   light touch (delta=4)  → sqrt(4)  = 2.0
-     *   medium push (delta=16) → sqrt(16) = 4.0
-     *   hard push   (delta=64) → sqrt(64) = 8.0
-     * This makes light touches 2x more responsive relative to
-     * heavy pushes compared to a linear mapping. */
-    float scaled = sqrtf((float)abs_delta);
-    int sign = (delta > 0) ? 1 : -1;
+    // Normalize current speed to 0.0 - 1.0
+    float t = (float)abs_delta / SCROLL_INPUT_MAX;
+    // Quadratic curve for a natural build-up of speed
+    t = t * t;
 
-    *residue += (int16_t)(scaled * sign * dir_mult);
+    // Interpolate divisor between slow-scroll and fast-scroll settings
+    float divisor = (float)SCROLL_DIVISOR_SLOW - ((float)SCROLL_DIVISOR_SLOW - (float)SCROLL_DIVISOR_FAST) * t;
+    if (divisor < 1.0f) {
+        divisor = 1.0f;
+    }
 
-    int16_t scroll_ticks = *residue / SCROLL_DIVISOR_SLOW;
+    // Accumulate scroll distance
+    *residue += ((float)delta * (float)dir_mult) / divisor;
+
+    int16_t scroll_ticks = (int16_t)*residue;
     if (scroll_ticks != 0) {
         input_report_rel(dev, input_code, scroll_ticks, true, K_NO_WAIT);
-        *residue %= SCROLL_DIVISOR_SLOW;
+        *residue -= (float)scroll_ticks;
     }
 }
 
