@@ -290,7 +290,6 @@ static void trackpoint_work_cb(struct k_work *work) {
     int16_t total_dx = 0;
     int16_t total_dy = 0;
     bool got_data = false;
-    const struct trackpoint_config *cfg = dev->config;
 
     for (int i = 0; i < 16; i++) {
         int8_t packet_dx = 0, packet_dy = 0;
@@ -299,14 +298,14 @@ static void trackpoint_work_cb(struct k_work *work) {
             break;
         }
 
+        // Break if we read an empty packet (no more motion data in FIFO)
+        if (packet_dx == 0 && packet_dy == 0) {
+            break;
+        }
+
         total_dx += packet_dx;
         total_dy += packet_dy;
         got_data = true;
-
-        // Check if the physical interrupt pin is deasserted (inactive / high)
-        if (gpio_pin_get_dt(&cfg->motion_gpio) == 0) {
-            break;
-        }
     }
 
     if (!got_data) {
