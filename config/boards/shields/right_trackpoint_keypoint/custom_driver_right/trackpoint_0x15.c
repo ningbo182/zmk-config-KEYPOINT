@@ -279,7 +279,6 @@ static void trackpoint_work_cb(struct k_work *work) {
         mouse_residual_x = 0;
         mouse_residual_y = 0;
         last_scroll_key_pressed = scroll_key_pressed;
-        return;
     }
 
     int8_t dx = 0, dy = 0;

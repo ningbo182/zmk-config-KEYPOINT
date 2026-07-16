@@ -75,7 +75,7 @@
 
 &bbtrackpad_listener {
     status = "okay";
-    input-processors = <&zip_temp_layer MOUSE_LAYER_ID 500>,
+    input-processors = <&zip_temp_layer MOUSE_LAYER_ID 1000>,
     <&ip_behaviors0>,
     <&ip_behaviors1>,
     <&ip_behaviors2>,

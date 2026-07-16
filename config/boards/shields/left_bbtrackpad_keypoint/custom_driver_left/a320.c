@@ -184,6 +184,7 @@ static int a320_read_packet(const struct device *dev, int8_t *dx, int8_t *dy) {
     *dx = (int8_t)buf[1];
     *dy = -(int8_t)buf[2];
 
+    k_mutex_unlock(&a320_i2c_mutex);
     return 0;
 
 out:
