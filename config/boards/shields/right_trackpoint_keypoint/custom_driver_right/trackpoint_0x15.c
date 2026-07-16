@@ -286,37 +286,41 @@ static void trackpoint_work_cb(struct k_work *work) {
         last_scroll_key_pressed = scroll_key_pressed;
     }
 
-    /* ========= ⭐ DRAIN MODE ========= */
-    int16_t total_dx = 0;
-    int16_t total_dy = 0;
-    bool got_data = false;
+    int8_t raw_dx = 0, raw_dy = 0;
+    int ret = trackpoint_read_packet(dev, &raw_dx, &raw_dy);
 
-    for (int i = 0; i < 16; i++) {
-        int8_t packet_dx = 0, packet_dy = 0;
-        int ret = trackpoint_read_packet(dev, &packet_dx, &packet_dy);
-        if (ret != 0) {
-            break;
-        }
-
-        // Break if we read an empty packet (no more motion data in FIFO)
-        if (packet_dx == 0 && packet_dy == 0) {
-            break;
-        }
-
-        total_dx += packet_dx;
-        total_dy += packet_dy;
-        got_data = true;
-    }
-
-    if (!got_data) {
+    if (ret != 0) {
+        LOG_WRN("TrackPoint I2C read failed (soft recover)");
+        data->scroll_residue_x = 0;
+        data->scroll_residue_y = 0;
         return;
     }
 
-    // Clamp combined values to int8_t limits
-    int8_t dx = (total_dx > 127) ? 127 : ((total_dx < -128) ? -128 : (int8_t)total_dx);
-    int8_t dy = (total_dy > 127) ? 127 : ((total_dy < -128) ? -128 : (int8_t)total_dy);
-
     last_activity_time = now;
+
+    static int16_t accumulated_dx = 0;
+    static int16_t accumulated_dy = 0;
+    static uint32_t last_report_time = 0;
+
+    accumulated_dx += raw_dx;
+    accumulated_dy += raw_dy;
+
+    bool stopped = (raw_dx == 0 && raw_dy == 0);
+    uint32_t elapsed = now - last_report_time;
+
+    // Rate limit reporting to ZMK/BLE queues to 10ms (100Hz) to prevent backlog
+    // If the trackpoint has stopped, bypass the rate limit and flush immediately
+    if (elapsed < 10 && !stopped) {
+        return;
+    }
+
+    // Clamp accumulated values to int8_t limits
+    int8_t dx = (accumulated_dx > 127) ? 127 : ((accumulated_dx < -128) ? -128 : (int8_t)accumulated_dx);
+    int8_t dy = (accumulated_dy > 127) ? 127 : ((accumulated_dy < -128) ? -128 : (int8_t)accumulated_dy);
+
+    accumulated_dx = 0;
+    accumulated_dy = 0;
+    last_report_time = now;
 
     /* ========= scroll mode detect ========= */
     bool just_enter_scroll = scroll_key_pressed && !last_scroll_key_pressed;
