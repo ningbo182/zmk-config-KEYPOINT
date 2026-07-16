@@ -286,20 +286,36 @@ static void trackpoint_work_cb(struct k_work *work) {
         last_scroll_key_pressed = scroll_key_pressed;
     }
 
-    int8_t dx = 0, dy = 0;
+    /* ========= ⭐ DRAIN MODE ========= */
+    int16_t total_dx = 0;
+    int16_t total_dy = 0;
+    bool got_data = false;
+    const struct trackpoint_config *cfg = dev->config;
 
-    /* ========= single read ========= */
-    int ret = trackpoint_read_packet(dev, &dx, &dy);
+    for (int i = 0; i < 16; i++) {
+        int8_t packet_dx = 0, packet_dy = 0;
+        int ret = trackpoint_read_packet(dev, &packet_dx, &packet_dy);
+        if (ret != 0) {
+            break;
+        }
 
-    if (ret != 0) {
-        LOG_WRN("TrackPoint I2C read failed (soft recover)");
+        total_dx += packet_dx;
+        total_dy += packet_dy;
+        got_data = true;
 
-        /* ⚠️ 不 break，不 sleep，不卡住 */
-        data->scroll_residue_x = 0;
-        data->scroll_residue_y = 0;
+        // Check if the physical interrupt pin is deasserted (inactive / high)
+        if (gpio_pin_get_dt(&cfg->motion_gpio) == 0) {
+            break;
+        }
+    }
 
+    if (!got_data) {
         return;
     }
+
+    // Clamp combined values to int8_t limits
+    int8_t dx = (total_dx > 127) ? 127 : ((total_dx < -128) ? -128 : (int8_t)total_dx);
+    int8_t dy = (total_dy > 127) ? 127 : ((total_dy < -128) ? -128 : (int8_t)total_dy);
 
     last_activity_time = now;
 
