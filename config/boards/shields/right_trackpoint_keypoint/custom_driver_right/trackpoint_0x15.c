@@ -286,41 +286,26 @@ static void trackpoint_work_cb(struct k_work *work) {
         last_scroll_key_pressed = scroll_key_pressed;
     }
 
-    int8_t raw_dx = 0, raw_dy = 0;
-    int ret = trackpoint_read_packet(dev, &raw_dx, &raw_dy);
+    int32_t total_dx = 0, total_dy = 0;
+    {
+        int8_t raw_dx = 0, raw_dy = 0;
+        while (trackpoint_read_packet(dev, &raw_dx, &raw_dy) == 0) {
+            if (raw_dx == 0 && raw_dy == 0)
+                break;
+            total_dx += raw_dx;
+            total_dy += raw_dy;
+        }
+    }
 
-    if (ret != 0) {
-        LOG_WRN("TrackPoint I2C read failed (soft recover)");
-        data->scroll_residue_x = 0;
-        data->scroll_residue_y = 0;
+    if (total_dx == 0 && total_dy == 0) {
         return;
     }
 
     last_activity_time = now;
 
-    static int16_t accumulated_dx = 0;
-    static int16_t accumulated_dy = 0;
-    static uint32_t last_report_time = 0;
-
-    accumulated_dx += raw_dx;
-    accumulated_dy += raw_dy;
-
-    bool stopped = (raw_dx == 0 && raw_dy == 0);
-    uint32_t elapsed = now - last_report_time;
-
-    // Rate limit reporting to ZMK/BLE queues to 10ms (100Hz) to prevent backlog
-    // If the trackpoint has stopped, bypass the rate limit and flush immediately
-    if (elapsed < 10 && !stopped) {
-        return;
-    }
-
-    // Clamp accumulated values to int8_t limits
-    int8_t dx = (accumulated_dx > 127) ? 127 : ((accumulated_dx < -128) ? -128 : (int8_t)accumulated_dx);
-    int8_t dy = (accumulated_dy > 127) ? 127 : ((accumulated_dy < -128) ? -128 : (int8_t)accumulated_dy);
-
-    accumulated_dx = 0;
-    accumulated_dy = 0;
-    last_report_time = now;
+    // Saturating clamp to int8_t before downstream processing
+    int8_t dx = (total_dx > 127) ? 127 : ((total_dx < -128) ? -128 : (int8_t)total_dx);
+    int8_t dy = (total_dy > 127) ? 127 : ((total_dy < -128) ? -128 : (int8_t)total_dy);
 
     /* ========= scroll mode detect ========= */
     bool just_enter_scroll = scroll_key_pressed && !last_scroll_key_pressed;
@@ -353,11 +338,9 @@ static void trackpoint_work_cb(struct k_work *work) {
         process_arrow_axis(dev, dy, &data->arrow_residue_y,
                            INPUT_BTN_2,  // 上
                            INPUT_BTN_3); // 下
-        k_msleep(16);
     } else if (scroll_key_pressed) {
         process_scroll_axis(dev, dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
         process_scroll_axis(dev, dy, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
-        k_msleep(10);
 
     } else {
 
