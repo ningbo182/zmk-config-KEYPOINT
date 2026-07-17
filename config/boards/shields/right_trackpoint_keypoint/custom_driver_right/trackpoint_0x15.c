@@ -286,31 +286,22 @@ static void trackpoint_work_cb(struct k_work *work) {
         last_scroll_key_pressed = scroll_key_pressed;
     }
 
-    int32_t total_dx = 0, total_dy = 0;
-    {
-        int8_t raw_dx = 0, raw_dy = 0;
-        while (trackpoint_read_packet(dev, &raw_dx, &raw_dy) == 0) {
-            if (raw_dx == 0 && raw_dy == 0)
-                break;
-            total_dx += raw_dx;
-            total_dy += raw_dy;
-        }
+    int8_t dx = 0, dy = 0;
+    int ret = trackpoint_read_packet(dev, &dx, &dy);
+    if (ret != 0) {
+        LOG_WRN("TrackPoint I2C read failed (soft recover)");
+        data->scroll_residue_x = 0;
+        data->scroll_residue_y = 0;
+        return;
     }
-
-    if (total_dx == 0 && total_dy == 0) {
+    if (dx == 0 && dy == 0) {
         return;
     }
 
     last_activity_time = now;
 
-    // Saturating clamp to int8_t before downstream processing
-    int8_t dx = (total_dx > 127) ? 127 : ((total_dx < -128) ? -128 : (int8_t)total_dx);
-    int8_t dy = (total_dy > 127) ? 127 : ((total_dy < -128) ? -128 : (int8_t)total_dy);
-
     /* ========= scroll mode detect ========= */
-    bool just_enter_scroll = scroll_key_pressed && !last_scroll_key_pressed;
     bool just_enter_arrow = arrow_key_pressed && !last_arrow_key_pressed;
-    bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
     if (arrow_key_pressed) {
 
