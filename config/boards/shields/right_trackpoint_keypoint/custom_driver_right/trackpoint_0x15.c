@@ -152,23 +152,22 @@ struct trackpoint_data {
     int16_t arrow_residue_y;
 };
 
-/* ========= S-CURVE ACCELERATION ========= */
+/* ========= S-CURVE ACCELERATION =========
+ * Uses packet magnitude directly (correlates with TrackPoint pressure/intent).
+ * First packet after any pause responds correctly — no "cold start" lag.
+ */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-#define TP_MAX_MULT   5.0f
-#define TP_SCURVE_MID 1.2f   /* speed at which acceleration reaches halfway to max */
-static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
-    if (delta_ms == 0)
-        delta_ms = 1;
-
+#define TP_MAX_MULT   3.0f    /* max multiplier for a hard push */
+#define TP_SCURVE_MID 25.0f   /* packet magnitude at which acceleration reaches halfway to max */
+static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy) {
     float dist = sqrtf((float)(dx * dx + dy * dy));
     if (dist < 0.5f)
         return 1.0f;
 
-    float speed  = dist / (float)delta_ms;
-    float speed2 = speed * speed;
-    float mid2   = TP_SCURVE_MID * TP_SCURVE_MID;
+    float dist2 = dist * dist;
+    float mid2  = TP_SCURVE_MID * TP_SCURVE_MID;
 
-    return 1.0f + (TP_MAX_MULT - 1.0f) * (speed2 / (speed2 + mid2));
+    return 1.0f + (TP_MAX_MULT - 1.0f) * (dist2 / (dist2 + mid2));
 }
 #endif
 
@@ -337,31 +336,34 @@ static void trackpoint_work_cb(struct k_work *work) {
 
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = MOUSE_SENS_BASE + MOUSE_SENS_STEP * tp_led_brt;
-            
+
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-        uint32_t delta = now - data->last_packet_time;
-        float exp_mult = trackpoint_exponential_factor(dx, dy, delta);
+        float exp_mult = trackpoint_exponential_factor(dx, dy);
 #else
         float exp_mult = 1.0f;
 #endif
 
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-        float fx = dx * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
-        float fy = dy * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+        /* Accumulate every packet losslessly into the float residual.
+         * Only emit an input_report at ~10ms intervals to avoid
+         * overwhelming the BLE HID queue (which drains at the connection
+         * interval, typically 7.5-15ms). Prevents the "catch up" lag. */
+        mouse_residual_x += dx * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+        mouse_residual_y += dy * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
 
-        mouse_residual_x += fx;
-        mouse_residual_y += fy;
+        static uint32_t last_mouse_report_time = 0;
+        if (now - last_mouse_report_time >= 10) {
+            int out_x = (int)mouse_residual_x;
+            int out_y = (int)mouse_residual_y;
 
-        int out_x = (int)mouse_residual_x;
-        int out_y = (int)mouse_residual_y;
-
-        mouse_residual_x -= out_x;
-        mouse_residual_y -= out_y;
-
-        if (out_x != 0 || out_y != 0) {
-            input_report_rel(dev, INPUT_REL_X, -out_x, false, K_NO_WAIT);
-            input_report_rel(dev, INPUT_REL_Y, -out_y, true, K_NO_WAIT);
+            if (out_x != 0 || out_y != 0) {
+                mouse_residual_x -= out_x;
+                mouse_residual_y -= out_y;
+                input_report_rel(dev, INPUT_REL_X, -out_x, false, K_NO_WAIT);
+                input_report_rel(dev, INPUT_REL_Y, -out_y, true, K_NO_WAIT);
+                last_mouse_report_time = now;
+            }
         }
     }
 
