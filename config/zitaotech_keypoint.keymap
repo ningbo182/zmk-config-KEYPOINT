@@ -94,9 +94,10 @@
         lt_c: layer_tap_custom {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
-            tapping-term-ms = <170>;
+            tapping-term-ms = <200>;
             quick-tap-ms = <150>;
-            flavor = "balanced";
+            flavor = "tap-preferred";
+            require-prior-idle-ms = <125>;
             bindings = <&mo>, <&kp>;
         };
 
