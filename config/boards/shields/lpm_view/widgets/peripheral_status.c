@@ -30,7 +30,6 @@ LV_IMG_DECLARE(vader);
 LV_IMG_DECLARE(blackhole);
 LV_IMG_DECLARE(plane);
 LV_IMG_DECLARE(mounta);
-LV_IMG_DECLARE(smugcat);
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -41,7 +40,7 @@ struct peripheral_status_state {
 
 // ==================== 图片数组 ====================
 static const lv_img_dsc_t *bunny_frames[] = {
-    &cat, &astronaut, &macintosch, &david, &vader, &blackhole, &plane, &mounta, &smugcat,
+    &cat, &astronaut, &macintosch, &david, &vader, &blackhole, &plane, &mounta,
 };
 
 #define BUNNY_FRAME_COUNT (sizeof(bunny_frames) / sizeof(bunny_frames[0]))
