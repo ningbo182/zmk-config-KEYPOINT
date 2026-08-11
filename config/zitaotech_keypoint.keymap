@@ -124,56 +124,56 @@
             bindings = <&kp LEFT_PARENTHESIS>;
             key-positions = <4 3>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
 
         right_parenthesis {
             bindings = <&kp RIGHT_PARENTHESIS>;
             key-positions = <7 8>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
 
         left_bracket {
             bindings = <&kp LEFT_BRACKET>;
             key-positions = <15 16>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
 
         right_bracket {
             bindings = <&kp RIGHT_BRACKET>;
             key-positions = <21 22>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
 
         pipe {
             bindings = <&kp PIPE>;
             key-positions = <5 6>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
 
         backslash {
             bindings = <&kp BACKSLASH>;
             key-positions = <17 20>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
 
         single_quote {
             bindings = <&kp SINGLE_QUOTE>;
             key-positions = <31 36>;
             layers = <QWERTY>;
-            timeout-ms = <35>;
-            require-prior-idle-ms = <150>;
+            timeout-ms = <25>;
+            require-prior-idle-ms = <200>;
         };
     };
 
