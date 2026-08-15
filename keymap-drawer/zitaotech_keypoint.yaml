@@ -44,7 +44,7 @@ layers:
   - /
   - RSHFT
   - LCTRL
-  - LGUI
+  - GLOBE
   - LALT
   - MUTE
   - {t: ESC, h: LGUI}
