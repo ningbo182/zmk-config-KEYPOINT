@@ -164,7 +164,7 @@ layers:
   - {t: ▽, type: trans}
   - '&tdLMCLK'
   - '&mkp MB1'
-  - '&mkp MB1'
+  - SYMBOL
   - '&tdRMCLK'
   - FUNCTION
   - MUTE
