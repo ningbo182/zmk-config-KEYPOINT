@@ -98,7 +98,7 @@ layers:
   - {t: ▽, type: trans}
   - '['
   - ']'
-  - NUBS
+  - \
   - RSHFT
   - LCTRL
   - LGUI
