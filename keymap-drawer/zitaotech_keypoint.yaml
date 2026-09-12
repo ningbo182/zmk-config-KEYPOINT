@@ -1,7 +1,7 @@
 layout: {zmk_keyboard: zitaotech_keypoint}
 layers:
   QWERTY:
-  - {t: TAB, h: ESC}
+  - TAB
   - Q
   - W
   - E
