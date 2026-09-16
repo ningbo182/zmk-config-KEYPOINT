@@ -13,6 +13,13 @@ config TRACKPOINT_EXPONENTIAL
     help
       Enable exponential acceleration for TrackPoint movement,
 
+config TRACKPOINT_SCURVE_MID
+    int "S-curve midpoint magnitude for acceleration (default 12)"
+    default 12
+    depends on TRACKPOINT_EXPONENTIAL
+    help
+      Packet magnitude at which acceleration reaches halfway to max.
+
 config TRACKPOINT_SCROLL_X_DIR
     int "Scroll X direction multiplier (1 for normal, -1 for inverted)"
     default 1
