@@ -339,7 +339,7 @@ layers:
   - {t: NUMBER, type: held}
   - '0'
   - {t: ▽, type: trans}
-  - {t: ▽, type: trans}
+  - .
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   FUNCTION:
