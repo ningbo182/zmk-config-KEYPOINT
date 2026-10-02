@@ -124,12 +124,6 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
         LOG_INF("space position=49 %s", scroll_key_pressed ? "PRESSED" : "RELEASED");
     }
 
-    // ★ NEW: Slow key
-    if (ev->position == 22) {
-        slow_key_pressed = ev->state;
-        LOG_INF("slow_key position=37 %s", slow_key_pressed ? "PRESSED" : "RELEASED");
-    }
-
     return 0;
 }
 ZMK_LISTENER(trackpoint_special_key_listener, special_key_listener_cb);
@@ -150,6 +144,8 @@ struct trackpoint_data {
     float scroll_residue_y;
     int16_t arrow_residue_x;
     int16_t arrow_residue_y;
+    float filtered_dx;
+    float filtered_dy;
 };
 
 /* ========= S-CURVE ACCELERATION =========
@@ -170,11 +166,14 @@ struct trackpoint_data {
 #define TP_SCURVE_MID 12.0f   /* packet magnitude at which acceleration reaches halfway to max */
 #endif
 
-static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy) {
-    float dist = sqrtf((float)(dx * dx + dy * dy));
-    if (dist < 0.5f)
-        return TP_MIN_MULT;
+#ifdef CONFIG_TRACKPOINT_SMOOTH_ALPHA
+#define TP_SMOOTH_ALPHA ((float)CONFIG_TRACKPOINT_SMOOTH_ALPHA / 100.0f)
+#else
+#define TP_SMOOTH_ALPHA 0.65f /* ThinkPad-style low-pass filter alpha (0.65 = silky & responsive) */
+#endif
 
+static inline float trackpoint_exponential_factor(float dx, float dy) {
+    float dist = sqrtf(dx * dx + dy * dy);
     float dist2 = dist * dist;
     float mid2  = TP_SCURVE_MID * TP_SCURVE_MID;
 
@@ -293,6 +292,8 @@ static void trackpoint_work_cb(struct k_work *work) {
         data->arrow_residue_y = 0;
         mouse_residual_x = 0;
         mouse_residual_y = 0;
+        data->filtered_dx = 0;
+        data->filtered_dy = 0;
         last_scroll_key_pressed = scroll_key_pressed;
     }
 
@@ -348,23 +349,36 @@ static void trackpoint_work_cb(struct k_work *work) {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = MOUSE_SENS_BASE + MOUSE_SENS_STEP * tp_led_brt;
 
+        /* ThinkPad-style motion smoothing & stroke isolation:
+         * If paused (>30ms), reset filter and residue to ensure a clean,
+         * immediate start without leftover fractional bias. Otherwise,
+         * apply low-pass EMA filter to eliminate finger tremor and stepping. */
+        if (now - data->last_packet_time > 30) {
+            data->filtered_dx = (float)dx;
+            data->filtered_dy = (float)dy;
+            mouse_residual_x = 0;
+            mouse_residual_y = 0;
+        } else {
+            data->filtered_dx = TP_SMOOTH_ALPHA * (float)dx + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dx;
+            data->filtered_dy = TP_SMOOTH_ALPHA * (float)dy + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dy;
+        }
+
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-        float exp_mult = trackpoint_exponential_factor(dx, dy);
+        float exp_mult = trackpoint_exponential_factor(data->filtered_dx, data->filtered_dy);
 #else
         float exp_mult = 1.0f;
 #endif
 
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-        /* Accumulate every packet losslessly into the float residual.
-         * Only emit an input_report at ~10ms intervals to avoid
-         * overwhelming the BLE HID queue (which drains at the connection
-         * interval, typically 7.5-15ms). Prevents the "catch up" lag. */
-        mouse_residual_x += dx * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
-        mouse_residual_y += dy * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+        /* Accumulate smoothed motion into float residual */
+        mouse_residual_x += data->filtered_dx * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+        mouse_residual_y += data->filtered_dy * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
 
+        /* Emit reports with a 7ms cadence gate to ensure normal 10ms hardware packets
+         * are never delayed by kernel timer jitter, while preventing BLE HID queue overflow. */
         static uint32_t last_mouse_report_time = 0;
-        if (now - last_mouse_report_time >= 10) {
+        if (now - last_mouse_report_time >= 7) {
             int out_x = (int)mouse_residual_x;
             int out_y = (int)mouse_residual_y;
 
@@ -418,6 +432,8 @@ static int trackpoint_init(const struct device *dev) {
     data->scroll_residue_y = 0;
     data->arrow_residue_x = 0;
     data->arrow_residue_y = 0;
+    data->filtered_dx = 0;
+    data->filtered_dy = 0;
     data->last_packet_time = k_uptime_get_32();
 
     k_work_init(&data->work, trackpoint_work_cb);

@@ -15,9 +15,18 @@
     input_processors {
 
         zip_temp_layer: zip_temp_layer {
-            compatible = "zmk,input-processor-temp-layer";
+            compatible = "zmk,input-processor-temp-layer-ext";
             #input-processor-cells = <2>;
             excluded-positions = <18 19 20 21 22 32 33 47 48 49 50>;
+        };
+
+        /* Arm-only variant: never activates the mouse layer by itself, but
+         * every mouse button event refreshes the shared exit timer
+         * while the layer is already active. */
+        zip_temp_layer_arm: zip_temp_layer_arm {
+            compatible = "zmk,input-processor-temp-layer-ext";
+            #input-processor-cells = <2>;
+            arm-only;
         };
 
         ip_behaviors0: ip_behaviors0 {
@@ -48,6 +57,19 @@
             codes = <INPUT_BTN_3>;
             bindings = <&kp UP>;
         };
+    };
+};
+
+/ {
+    /* Mouse buttons pressed via &mkp (LCLK/RCLK/MCLK, also inside tap dances
+     * and hold-taps) report through the input subsystem on the mkp device.
+     * This listener feeds those events to the arm-only temp layer instance,
+     * resetting the mouse layer exit timer on every click. 1200 ms,
+     * matching the trackpad/trackpoint listeners. */
+    mkp_arm_listener: mkp_arm_listener {
+        compatible = "zmk,input-listener";
+        device = <&mkp>;
+        input-processors = <&zip_temp_layer_arm MOUSE_LAYER_ID 1200>;
     };
 };
 

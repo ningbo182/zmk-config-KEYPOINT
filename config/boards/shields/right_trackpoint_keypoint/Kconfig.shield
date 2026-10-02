@@ -28,6 +28,15 @@ config TRACKPOINT_MIN_MULT_PERCENT
       Starting multiplier percentage for small deflections (e.g. 35 = 0.35x),
       allowing smooth sub-character and single-pixel precision moves.
 
+config TRACKPOINT_SMOOTH_ALPHA
+    int "EMA smoothing alpha percentage (default 65 for 0.65)"
+    default 65
+    depends on TRACKPOINT_EXPONENTIAL
+    help
+      Exponential moving average filter weight (0-100).
+      65 gives responsive yet silky smooth ThinkPad-style filtering,
+      removing high-frequency tremor and integer stepping.
+
 config TRACKPOINT_SCROLL_X_DIR
     int "Scroll X direction multiplier (1 for normal, -1 for inverted)"
     default 1
