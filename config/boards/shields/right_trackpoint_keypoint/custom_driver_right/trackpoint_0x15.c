@@ -158,20 +158,27 @@ struct trackpoint_data {
  */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
 #define TP_MAX_MULT   3.0f    /* max multiplier for a hard push */
+#ifdef CONFIG_TRACKPOINT_MIN_MULT_PERCENT
+#define TP_MIN_MULT   ((float)CONFIG_TRACKPOINT_MIN_MULT_PERCENT / 100.0f)
+#else
+#define TP_MIN_MULT   0.35f   /* low-speed precision multiplier */
+#endif
+
 #ifdef CONFIG_TRACKPOINT_SCURVE_MID
 #define TP_SCURVE_MID ((float)CONFIG_TRACKPOINT_SCURVE_MID)
 #else
 #define TP_SCURVE_MID 12.0f   /* packet magnitude at which acceleration reaches halfway to max */
 #endif
+
 static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy) {
     float dist = sqrtf((float)(dx * dx + dy * dy));
     if (dist < 0.5f)
-        return 1.0f;
+        return TP_MIN_MULT;
 
     float dist2 = dist * dist;
     float mid2  = TP_SCURVE_MID * TP_SCURVE_MID;
 
-    return 1.0f + (TP_MAX_MULT - 1.0f) * (dist2 / (dist2 + mid2));
+    return TP_MIN_MULT + (TP_MAX_MULT - TP_MIN_MULT) * (dist2 / (dist2 + mid2));
 }
 #endif
 

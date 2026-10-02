@@ -20,6 +20,14 @@ config TRACKPOINT_SCURVE_MID
     help
       Packet magnitude at which acceleration reaches halfway to max.
 
+config TRACKPOINT_MIN_MULT_PERCENT
+    int "Minimum multiplier percentage for micro-movements (precision zone, default 35)"
+    default 35
+    depends on TRACKPOINT_EXPONENTIAL
+    help
+      Starting multiplier percentage for small deflections (e.g. 35 = 0.35x),
+      allowing smooth sub-character and single-pixel precision moves.
+
 config TRACKPOINT_SCROLL_X_DIR
     int "Scroll X direction multiplier (1 for normal, -1 for inverted)"
     default 1

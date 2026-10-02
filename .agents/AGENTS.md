@@ -2,9 +2,10 @@
 
 When working on pointer sensitivity, scrolling speeds, or layer timeouts in this repository, always adhere to the following principles:
 
-## 1. Trackpoint Sensitivity and Effort (TP_SCURVE_MID)
+## 1. Trackpoint Sensitivity and Effort (TP_SCURVE_MID & TP_MIN_MULT)
 * The s-curve acceleration midpoint `TP_SCURVE_MID` in `trackpoint_0x15.c` controls physical effort. 
-* Shifting `TP_SCURVE_MID` to a lower value (e.g. `9.0f` instead of the default `25.0f`) makes exponential acceleration trigger under lighter pressure, reducing finger strain.
+* Shifting `TP_SCURVE_MID` to a lower value (e.g. `9.0f` or `12.0f` instead of the default `25.0f`) makes exponential acceleration trigger under lighter pressure, reducing finger strain.
+* The precision zone minimum multiplier `TP_MIN_MULT` (configured via `CONFIG_TRACKPOINT_MIN_MULT_PERCENT`, default `35%` / `0.35f`) provides sub-linear deceleration for micro-movements (deflections of 1–2 counts). Without this, the minimum cursor speed is ~120 px/s, making 1-letter text selection and fine targeting overshoot. A floor of ~0.35x drops the crawl speed to ~40 px/s for single-pixel precision.
 
 ## 2. Scroll Divisor Scaling
 * The trackpoint reports at a high frequency (around 100Hz). 
