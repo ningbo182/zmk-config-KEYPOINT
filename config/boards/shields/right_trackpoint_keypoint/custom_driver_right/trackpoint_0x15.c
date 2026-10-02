@@ -172,12 +172,25 @@ struct trackpoint_data {
 #define TP_SMOOTH_ALPHA 0.65f /* ThinkPad-style low-pass filter alpha (0.65 = silky & responsive) */
 #endif
 
+#define TP_PRECISION_CUTOFF 2.0f /* deflections <= 2.0 counts are in precision zone */
+
 static inline float trackpoint_exponential_factor(float dx, float dy) {
     float dist = sqrtf(dx * dx + dy * dy);
-    float dist2 = dist * dist;
+
+    /* Precision zone: micro-movements (1-2 counts) scale from TP_MIN_MULT to 1.0x */
+    if (dist <= TP_PRECISION_CUTOFF) {
+        if (dist <= 0.0f) {
+            return TP_MIN_MULT;
+        }
+        return TP_MIN_MULT + (1.0f - TP_MIN_MULT) * (dist / TP_PRECISION_CUTOFF);
+    }
+
+    /* Acceleration zone: deflections beyond precision cutoff scale from 1.0x to TP_MAX_MULT */
+    float d_accel = dist - TP_PRECISION_CUTOFF;
+    float dist2 = d_accel * d_accel;
     float mid2  = TP_SCURVE_MID * TP_SCURVE_MID;
 
-    return TP_MIN_MULT + (TP_MAX_MULT - TP_MIN_MULT) * (dist2 / (dist2 + mid2));
+    return 1.0f + (TP_MAX_MULT - 1.0f) * (dist2 / (dist2 + mid2));
 }
 #endif
 
