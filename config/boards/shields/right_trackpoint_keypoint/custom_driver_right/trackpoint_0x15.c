@@ -328,6 +328,7 @@ static void trackpoint_work_cb(struct k_work *work) {
     }
 
     last_activity_time = now;
+    custom_led_wake();
 
     /* ========= scroll mode detect ========= */
     bool just_enter_arrow = arrow_key_pressed && !last_arrow_key_pressed;

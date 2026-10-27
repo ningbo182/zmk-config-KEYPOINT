@@ -96,8 +96,7 @@
             #binding-cells = <2>;
             tapping-term-ms = <200>;
             quick-tap-ms = <150>;
-            flavor = "tap-preferred";
-            require-prior-idle-ms = <125>;
+            flavor = "balanced";
             bindings = <&mo>, <&kp>;
         };
 
@@ -156,7 +155,7 @@
             bindings = <&kp PIPE>;
             key-positions = <5 6>;
             layers = <QWERTY>;
-            timeout-ms = <25>;
+            timeout-ms = <45>;
             require-prior-idle-ms = <200>;
         };
 
@@ -164,7 +163,7 @@
             bindings = <&kp BACKSLASH>;
             key-positions = <17 20>;
             layers = <QWERTY>;
-            timeout-ms = <25>;
+            timeout-ms = <45>;
             require-prior-idle-ms = <200>;
         };
 
@@ -172,7 +171,7 @@
             bindings = <&kp SINGLE_QUOTE>;
             key-positions = <31 36>;
             layers = <QWERTY>;
-            timeout-ms = <25>;
+            timeout-ms = <45>;
             require-prior-idle-ms = <200>;
         };
     };

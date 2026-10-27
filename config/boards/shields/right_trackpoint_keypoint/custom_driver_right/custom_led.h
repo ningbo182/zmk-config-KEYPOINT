@@ -8,3 +8,8 @@
  * This value is NOT cleared when LED fades to 0.
  */
 uint8_t custom_led_get_last_valid_brightness(void);
+
+/**
+ * @brief Wake the LED polling task when motion or input occurs
+ */
+void custom_led_wake(void);

@@ -12,6 +12,9 @@
 #include <zephyr/logging/log.h>
 
 #include <zmk/backlight.h>
+#include <zmk/event_manager.h>
+#include <zmk/events/activity_state_changed.h>
+#include <zmk/events/position_state_changed.h>
 
 #include "custom_led.h" // ★ 新增
 
@@ -87,9 +90,10 @@ static void fade_to(uint8_t new_brt) {
 static void auto_off_handler(struct k_work *work) {
     LOG_INF("Auto-off → fade-out to 0");
     fade_to(0);
+    k_work_reschedule(&poll_work, K_NO_WAIT);
 }
 
-/* === Poll backlight changes every 10ms === */
+/* === Poll backlight changes === */
 static void poll_handler(struct k_work *work) {
     uint8_t brt = zmk_backlight_get_brt();
 
@@ -119,11 +123,41 @@ static void poll_handler(struct k_work *work) {
         }
     }
 
-    k_work_reschedule(&poll_work, K_MSEC(10));
+    /* While the LED is active or fading, check every 50ms.
+     * When the LED has faded out to 0, stop polling so the MCU can deep-sleep.
+     * Event listeners (activity, keypress, trackpoint motion) wake poll_work when needed. */
+    if (current_brt > 0 || fade_step >= 0) {
+        k_work_reschedule(&poll_work, K_MSEC(50));
+    }
 }
 
 /* === Public API === */
 uint8_t custom_led_get_last_valid_brightness(void) { return last_valid_brt; }
+
+void custom_led_wake(void) {
+    k_work_reschedule(&poll_work, K_NO_WAIT);
+}
+
+/* === Event Listeners for power-friendly waking === */
+static int custom_led_activity_cb(const zmk_event_t *eh) {
+    const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
+    if (ev && ev->state == ZMK_ACTIVITY_ACTIVE) {
+        custom_led_wake();
+    }
+    return ZMK_EV_EVENT_BUBBLE;
+}
+ZMK_LISTENER(custom_led_activity, custom_led_activity_cb);
+ZMK_SUBSCRIPTION(custom_led_activity, zmk_activity_state_changed);
+
+static int custom_led_pos_cb(const zmk_event_t *eh) {
+    const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
+    if (ev && ev->state) {
+        custom_led_wake();
+    }
+    return ZMK_EV_EVENT_BUBBLE;
+}
+ZMK_LISTENER(custom_led_pos, custom_led_pos_cb);
+ZMK_SUBSCRIPTION(custom_led_pos, zmk_position_state_changed);
 
 /* === Init === */
 static int init_led_follow(void) {

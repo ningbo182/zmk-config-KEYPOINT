@@ -316,6 +316,7 @@ static void a320_work_cb(struct k_work *work) {
     if (got_data) {
         last_touch_time = now;
         touched = true;
+        indicator_tp_touch_notify();
     }
 
     /* ========= ⭐ TOUCH RELEASE  ========= */
@@ -332,8 +333,6 @@ static void a320_work_cb(struct k_work *work) {
     /* ========= scroll / arrow mode 切换检测 ========= */
     bool just_enter_scroll = scroll_key_pressed && !last_scroll_key_pressed;
     bool just_enter_arrow = arrow_key_pressed && !last_arrow_key_pressed;
-    bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
-
     if (arrow_key_pressed) {
 
         if (just_enter_arrow) {
@@ -356,11 +355,11 @@ static void a320_work_cb(struct k_work *work) {
         process_arrow_axis(dev, dx, &data->arrow_residue_x, INPUT_BTN_1, INPUT_BTN_0);
 
         process_arrow_axis(dev, dy, &data->arrow_residue_y, INPUT_BTN_3, INPUT_BTN_2);
-    } else if (scroll_key_pressed || capslock) {
+    } else if (scroll_key_pressed) {
         process_scroll_axis(dev, dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, -SCROLL_X_DIR);
         process_scroll_axis(dev, dy, &data->scroll_residue_y, INPUT_REL_WHEEL, -SCROLL_Y_DIR);
         k_msleep(25);
-    } else if (!capslock) {
+    } else {
 
         uint8_t a320_led_brt = indicator_tp_get_last_valid_brightness();
         float a320_factor = 0.4f + 0.01f * a320_led_brt;
@@ -390,8 +389,6 @@ static void a320_work_cb(struct k_work *work) {
             input_report_rel(dev, INPUT_REL_X, out_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_Y, out_y, true, K_NO_WAIT);
         }
-    } else {
-        touched = false;
     }
 
     last_scroll_key_pressed = scroll_key_pressed;

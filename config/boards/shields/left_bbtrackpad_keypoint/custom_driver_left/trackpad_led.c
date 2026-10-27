@@ -14,6 +14,10 @@
 #include <zmk/hid_indicators.h>
 #include <zmk/backlight.h>
 #include <zmk/activity.h>
+#include <zmk/event_manager.h>
+#include <zmk/events/activity_state_changed.h>
+#include <zmk/events/endpoint_changed.h>
+#include <zmk/events/hid_indicators_changed.h>
 #include "trackpad_led.h"
 #include "a320.h"
 
@@ -36,7 +40,7 @@ static const struct device *const led_dev = DEVICE_DT_GET(DT_CHOSEN(zmk_trackpad
 #define BRT_STEP 5
 
 #define ANIMATION_INTERVAL_MS 20
-#define POLLING_INTERVAL_MS 5
+#define POLLING_INTERVAL_MS 30
 #define AUTO_OFF_DELAY_MS 5000
 
 #define FLASH_ON_MS 100   /* USB mode ON duration */
@@ -94,6 +98,7 @@ static void auto_off_work_handler(struct k_work *work) {
         manual_override = false;
         set_led_brightness(0);
         LOG_DBG("Auto-off triggered after inactivity");
+        k_work_reschedule(&polling_work, K_NO_WAIT);
     }
 }
 
@@ -207,10 +212,44 @@ static void polling_work_handler(struct k_work *work) {
         }
     }
 
-    k_work_reschedule(&polling_work, K_MSEC(POLLING_INTERVAL_MS));
+    /* While the keyboard is active, or touch is active, or CapsLock / USB flashing is running,
+     * continue polling at the 30ms interval.
+     * When idle with LED off on BLE, pause polling to allow deep sleep! */
+    if (keyboard_active || touch_active || capslock_on || manual_override || usb_mode) {
+        k_work_reschedule(&polling_work, K_MSEC(POLLING_INTERVAL_MS));
+    }
 }
 
 uint8_t indicator_tp_get_last_valid_brightness(void) { return last_valid_brt; }
+
+void indicator_tp_touch_notify(void) {
+    k_work_reschedule(&polling_work, K_NO_WAIT);
+}
+
+/* === Event Listeners for power-friendly waking === */
+static int trackpad_led_activity_cb(const zmk_event_t *eh) {
+    const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
+    if (ev && ev->state == ZMK_ACTIVITY_ACTIVE) {
+        k_work_reschedule(&polling_work, K_NO_WAIT);
+    }
+    return ZMK_EV_EVENT_BUBBLE;
+}
+ZMK_LISTENER(trackpad_led_activity, trackpad_led_activity_cb);
+ZMK_SUBSCRIPTION(trackpad_led_activity, zmk_activity_state_changed);
+
+static int trackpad_led_endpoint_cb(const zmk_event_t *eh) {
+    k_work_reschedule(&polling_work, K_NO_WAIT);
+    return ZMK_EV_EVENT_BUBBLE;
+}
+ZMK_LISTENER(trackpad_led_endpoint, trackpad_led_endpoint_cb);
+ZMK_SUBSCRIPTION(trackpad_led_endpoint, zmk_endpoint_changed);
+
+static int trackpad_led_hid_cb(const zmk_event_t *eh) {
+    k_work_reschedule(&polling_work, K_NO_WAIT);
+    return ZMK_EV_EVENT_BUBBLE;
+}
+ZMK_LISTENER(trackpad_led_hid, trackpad_led_hid_cb);
+ZMK_SUBSCRIPTION(trackpad_led_hid, zmk_hid_indicators_changed);
 
 static int indicator_tp_init(void) {
     if (!device_is_ready(led_dev)) {

@@ -18,6 +18,11 @@ extern "C" {
  */
 uint8_t indicator_tp_get_last_valid_brightness(void);
 
+/**
+ * @brief Notify trackpad LED of active touch input to wake polling
+ */
+void indicator_tp_touch_notify(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -2,7 +2,7 @@
   "$schema": "https://zitaotech.studio/schemas/keyboard-backup/v2.json",
   "format": "zitaotech-studio-keyboard-backup",
   "version": 2,
-  "exportedAt": "2026-10-25T02:29:15.000Z",
+  "exportedAt": "2026-10-27T06:18:29.000Z",
   "sections": {
     "keymap": true,
     "combos": true,
