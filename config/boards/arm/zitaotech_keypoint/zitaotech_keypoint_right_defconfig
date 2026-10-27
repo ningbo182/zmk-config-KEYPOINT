@@ -73,8 +73,8 @@ CONFIG_ZMK_BLE=y
 # Milliseconds to wait after a setting change before writing it to flash memory
 CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE=1000
 
-# ZMK Studio
-CONFIG_ZMK_STUDIO=y
+# ZMK Studio (disabled on peripheral: saves RAM/Flash and prevents deep sleep wake lockup)
+CONFIG_ZMK_STUDIO=n
 CONFIG_ZMK_STUDIO_LOCKING=n
 CONFIG_ZMK_STUDIO_LOCK_ON_DISCONNECT=n
 
