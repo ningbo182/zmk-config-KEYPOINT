@@ -151,6 +151,9 @@ struct trackpoint_data {
     int16_t arrow_residue_y;
     float filtered_dx;
     float filtered_dy;
+    float last_push_dx;
+    float last_push_dy;
+    uint32_t last_push_time;
 };
 
 /* ========= S-CURVE ACCELERATION =========
@@ -224,20 +227,20 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
 }
 
 
-static inline void process_scroll_axis(const struct device *dev, int8_t delta, float *residue,
+static inline void process_scroll_axis(const struct device *dev, float delta, float *residue,
                                        uint16_t input_code, int8_t dir_mult) {
-    int abs_delta = abs(delta);
+    float abs_delta = fabsf(delta);
 
-    if (abs_delta <= SCROLL_DEADZONE) {
+    if (abs_delta <= (float)SCROLL_DEADZONE) {
         return;
     }
 
-    if (abs_delta > SCROLL_INPUT_MAX) {
-        abs_delta = SCROLL_INPUT_MAX;
+    if (abs_delta > (float)SCROLL_INPUT_MAX) {
+        abs_delta = (float)SCROLL_INPUT_MAX;
     }
 
     // Normalize current speed to 0.0 - 1.0
-    float t = (float)abs_delta / SCROLL_INPUT_MAX;
+    float t = abs_delta / (float)SCROLL_INPUT_MAX;
     // Quadratic curve for a natural build-up of speed
     t = t * t;
 
@@ -248,7 +251,7 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, f
     }
 
     // Accumulate scroll distance
-    *residue += ((float)delta * (float)dir_mult) / divisor;
+    *residue += (delta * (float)dir_mult) / divisor;
 
     int16_t scroll_ticks = (int16_t)*residue;
     if (scroll_ticks != 0) {
@@ -297,6 +300,7 @@ static inline void process_arrow_axis(const struct device *dev, int8_t delta, in
 static void trackpoint_work_cb(struct k_work *work) {
     struct trackpoint_data *data = CONTAINER_OF(work, struct trackpoint_data, work);
     const struct device *dev = data->dev;
+    const struct trackpoint_config *cfg = dev->config;
 
     uint32_t now = k_uptime_get_32();
 
@@ -312,75 +316,149 @@ static void trackpoint_work_cb(struct k_work *work) {
         mouse_residual_y = 0;
         data->filtered_dx = 0;
         data->filtered_dy = 0;
+        data->last_push_dx = 0;
+        data->last_push_dy = 0;
+        data->last_push_time = 0;
         last_scroll_key_pressed = scroll_key_pressed;
     }
 
-    int8_t dx = 0, dy = 0;
-    int ret = trackpoint_read_packet(dev, &dx, &dy);
-    if (ret != 0) {
-        LOG_WRN("TrackPoint I2C read failed (soft recover)");
-        data->scroll_residue_x = 0;
-        data->scroll_residue_y = 0;
+    /* ========= I2C PACKET DRAIN =========
+     * Read pending packet(s). If multiple packets queued up during latency spikes,
+     * drain them so edge-triggered INT never stalls. */
+    int16_t total_dx = 0;
+    int16_t total_dy = 0;
+    bool got_data = false;
+
+    for (int drain = 0; drain < 5; drain++) {
+        int8_t packet_dx = 0, packet_dy = 0;
+        int ret = trackpoint_read_packet(dev, &packet_dx, &packet_dy);
+        if (ret != 0) {
+            if (!got_data) {
+                LOG_WRN("TrackPoint I2C read failed (soft recover)");
+                data->scroll_residue_x = 0;
+                data->scroll_residue_y = 0;
+                return;
+            }
+            break;
+        }
+
+        if (packet_dx == 0 && packet_dy == 0) {
+            break;
+        }
+
+        total_dx += packet_dx;
+        total_dy += packet_dy;
+        got_data = true;
+
+        /* If motion GPIO is no longer active (0), no more packets are queued */
+        if (gpio_pin_get_dt(&cfg->motion_gpio) == 0) {
+            break;
+        }
+    }
+
+    if (!got_data) {
         return;
     }
-    if (dx == 0 && dy == 0) {
-        return;
-    }
+
+    if (total_dx > 127) total_dx = 127;
+    else if (total_dx < -127) total_dx = -127;
+    if (total_dy > 127) total_dy = 127;
+    else if (total_dy < -127) total_dy = -127;
+
+    int8_t dx = (int8_t)total_dx;
+    int8_t dy = (int8_t)total_dy;
 
     last_activity_time = now;
     custom_led_wake();
 
-    /* ========= scroll mode detect ========= */
+    /* ThinkPad-style motion smoothing & stroke isolation:
+     * If paused (>30ms), reset filter and residue to ensure a clean,
+     * immediate start without leftover fractional bias. Otherwise,
+     * apply low-pass EMA filter to eliminate finger tremor and stepping. */
+    if (now - data->last_packet_time > 30) {
+        data->filtered_dx = (float)dx;
+        data->filtered_dy = (float)dy;
+        mouse_residual_x = 0;
+        mouse_residual_y = 0;
+    } else {
+        data->filtered_dx = TP_SMOOTH_ALPHA * (float)dx + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dx;
+        data->filtered_dy = TP_SMOOTH_ALPHA * (float)dy + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dy;
+    }
+
+    float dist = sqrtf(data->filtered_dx * data->filtered_dx + data->filtered_dy * data->filtered_dy);
+
+    /* Anti-recoil / negative drift suppression:
+     * When stopping after a firm push (dist >= 6.0), the strain gauge mechanical snap-back
+     * outputs 1-2 counts in the opposite direction. If within 150ms of a firm push,
+     * suppress low-amplitude opposite-direction deflections so cursor stops dead on target. */
+    if (dist >= 6.0f) {
+        data->last_push_dx = data->filtered_dx;
+        data->last_push_dy = data->filtered_dy;
+        data->last_push_time = now;
+    } else if (data->last_push_time > 0 && (now - data->last_push_time) < 150) {
+        if (dist <= TP_PRECISION_CUTOFF) {
+            float dot = data->last_push_dx * data->filtered_dx + data->last_push_dy * data->filtered_dy;
+            if (dot < 0.0f) {
+                data->filtered_dx = 0.0f;
+                data->filtered_dy = 0.0f;
+                dist = 0.0f;
+            }
+        }
+    } else {
+        data->last_push_time = 0;
+    }
+
+    /* ========= scroll / arrow / mouse mode dispatch ========= */
     bool just_enter_arrow = arrow_key_pressed && !last_arrow_key_pressed;
 
     if (arrow_key_pressed) {
-
         if (just_enter_arrow) {
-            data->arrow_residue_x = dx;
-            data->arrow_residue_y = dy;
+            data->arrow_residue_x = (int16_t)data->filtered_dx;
+            data->arrow_residue_y = (int16_t)data->filtered_dy;
         }
 
-        int abs_dx = abs(dx);
-        int abs_dy = abs(dy);
+        float abs_dx = fabsf(data->filtered_dx);
+        float abs_dy = fabsf(data->filtered_dy);
+
+        int8_t arrow_dx = (int8_t)data->filtered_dx;
+        int8_t arrow_dy = (int8_t)data->filtered_dy;
 
         if (abs_dy * DOMINANT_DENOMINATOR > abs_dx * DOMINANT_NUMERATOR) {
-            dx = 0;
+            arrow_dx = 0;
         } else if (abs_dx * DOMINANT_DENOMINATOR > abs_dy * DOMINANT_NUMERATOR) {
-            dy = 0;
+            arrow_dy = 0;
         } else {
-            dx = 0;
-            dy = 0;
+            arrow_dx = 0;
+            arrow_dy = 0;
         }
 
-        process_arrow_axis(dev, dx, &data->arrow_residue_x,
+        process_arrow_axis(dev, arrow_dx, &data->arrow_residue_x,
                            INPUT_BTN_0,  // 左
                            INPUT_BTN_1); // 右
         
-        process_arrow_axis(dev, dy, &data->arrow_residue_y,
+        process_arrow_axis(dev, arrow_dy, &data->arrow_residue_y,
                            INPUT_BTN_2,  // 上
                            INPUT_BTN_3); // 下
     } else if (scroll_key_pressed) {
-        process_scroll_axis(dev, dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
-        process_scroll_axis(dev, dy, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
+        float abs_dx = fabsf(data->filtered_dx);
+        float abs_dy = fabsf(data->filtered_dy);
+
+        float scroll_dx = data->filtered_dx;
+        float scroll_dy = data->filtered_dy;
+
+        /* Dominant axis filter: prevent accidental horizontal scrolling when pushing vertically */
+        if (abs_dy * DOMINANT_DENOMINATOR > abs_dx * DOMINANT_NUMERATOR) {
+            scroll_dx = 0.0f;
+        } else if (abs_dx * DOMINANT_DENOMINATOR > abs_dy * DOMINANT_NUMERATOR) {
+            scroll_dy = 0.0f;
+        }
+
+        process_scroll_axis(dev, scroll_dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
+        process_scroll_axis(dev, scroll_dy, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
 
     } else {
-
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = MOUSE_SENS_BASE + MOUSE_SENS_STEP * tp_led_brt;
-
-        /* ThinkPad-style motion smoothing & stroke isolation:
-         * If paused (>30ms), reset filter and residue to ensure a clean,
-         * immediate start without leftover fractional bias. Otherwise,
-         * apply low-pass EMA filter to eliminate finger tremor and stepping. */
-        if (now - data->last_packet_time > 30) {
-            data->filtered_dx = (float)dx;
-            data->filtered_dy = (float)dy;
-            mouse_residual_x = 0;
-            mouse_residual_y = 0;
-        } else {
-            data->filtered_dx = TP_SMOOTH_ALPHA * (float)dx + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dx;
-            data->filtered_dy = TP_SMOOTH_ALPHA * (float)dy + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dy;
-        }
 
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
         float exp_mult = trackpoint_exponential_factor(data->filtered_dx, data->filtered_dy);
@@ -453,6 +531,9 @@ static int trackpoint_init(const struct device *dev) {
     data->arrow_residue_y = 0;
     data->filtered_dx = 0;
     data->filtered_dy = 0;
+    data->last_push_dx = 0;
+    data->last_push_dy = 0;
+    data->last_push_time = 0;
     data->last_packet_time = k_uptime_get_32();
 
     k_work_init(&data->work, trackpoint_work_cb);
