@@ -115,13 +115,18 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
         return 0;
     if (ev->position == 20) {
         arrow_key_pressed = ev->state;
-        LOG_INF("space position=49 %s", arrow_key_pressed ? "PRESSED" : "RELEASED");
+        LOG_INF("arrow key position=20 %s", arrow_key_pressed ? "PRESSED" : "RELEASED");
     }
 
-    // Scroll key (Space)
+    // Scroll key (LMouse_sc / Space, position 49)
     if (ev->position == 49) {
         scroll_key_pressed = ev->state;
-        LOG_INF("space position=49 %s", scroll_key_pressed ? "PRESSED" : "RELEASED");
+        LOG_INF("scroll position=49 %s", scroll_key_pressed ? "PRESSED" : "RELEASED");
+    }
+
+    if (ev->position == 22) {
+        slow_key_pressed = ev->state;
+        LOG_INF("slow_key position=22 %s", slow_key_pressed ? "PRESSED" : "RELEASED");
     }
 
     return 0;

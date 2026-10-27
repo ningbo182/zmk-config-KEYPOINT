@@ -43,6 +43,9 @@ static int lpm009m360a_transmit_hold(const struct device *dev, uint8_t cmd, uint
     int ret;
 
     ret = spi_write_dt(&config->bus, &tx_bufs);
+    if (ret < 0) {
+        return ret;
+    }
     tx_buf.buf = &arg;
     ret = spi_write_dt(&config->bus, &tx_bufs);
     if (ret < 0) {

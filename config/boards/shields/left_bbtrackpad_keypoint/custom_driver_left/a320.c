@@ -113,18 +113,18 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
         return 0;
     if (ev->position == 20) {
         arrow_key_pressed = ev->state;
-        LOG_INF("space position=49 %s", arrow_key_pressed ? "PRESSED" : "RELEASED");
+        LOG_INF("arrow key position=20 %s", arrow_key_pressed ? "PRESSED" : "RELEASED");
     }
 
-    // Scroll key (Space)
-    if (ev->position == 48 || ev->position == 49) {
+    // Scroll key (LMouse_sc / Space, position 49)
+    if (ev->position == 49) {
         scroll_key_pressed = ev->state;
-        LOG_INF("space position=49 %s", scroll_key_pressed ? "PRESSED" : "RELEASED");
+        LOG_INF("scroll position=49 %s", scroll_key_pressed ? "PRESSED" : "RELEASED");
     }
 
     if (ev->position == 22) {
         slow_key_pressed = ev->state;
-        LOG_INF("slow_key position=37 %s", slow_key_pressed ? "PRESSED" : "RELEASED");
+        LOG_INF("slow_key position=22 %s", slow_key_pressed ? "PRESSED" : "RELEASED");
     }
 
     return 0;
@@ -175,10 +175,12 @@ static int a320_read_packet(const struct device *dev, int8_t *dx, int8_t *dy) {
 
     k_mutex_lock(&a320_i2c_mutex, K_FOREVER);
 
-    if (i2c_write_dt(&cfg->i2c, &reg, 1) < 0)
+    ret = i2c_write_dt(&cfg->i2c, &reg, 1);
+    if (ret < 0)
         goto out;
 
-    if (i2c_burst_read_dt(&cfg->i2c, 0x82, buf, sizeof(buf)) < 0)
+    ret = i2c_burst_read_dt(&cfg->i2c, 0x82, buf, sizeof(buf));
+    if (ret < 0)
         goto out;
 
     *dx = (int8_t)buf[1];
