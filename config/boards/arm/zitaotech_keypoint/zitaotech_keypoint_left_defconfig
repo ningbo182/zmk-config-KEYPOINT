@@ -31,9 +31,9 @@ CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
 CONFIG_BT_MAX_CONN=5
 CONFIG_BT_MAX_PAIRED=5
 CONFIG_ZMK_BLE_EXPERIMENTAL_FEATURES=y
-# Sleep Setting
-CONFIG_ZMK_SLEEP=y
-CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=3600000
+# Sleep Setting (deep sleep disabled for always-on display and zero wake lag)
+CONFIG_ZMK_SLEEP=n
+# CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=3600000
 CONFIG_ZMK_EXT_POWER=y
 # timeout for backlight for keyboard in miliseconds
 CONFIG_ZMK_IDLE_TIMEOUT=30000                         

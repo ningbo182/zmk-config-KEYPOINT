@@ -157,6 +157,11 @@ static int peripheral_status_activity_cb(const zmk_event_t *eh) {
     const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
     if (ev) {
         if (ev->state == ZMK_ACTIVITY_ACTIVE) {
+            struct zmk_widget_status *widget;
+            SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+                draw_top(widget->obj, widget->cbuf, &widget->state);
+                lv_obj_invalidate(widget->obj);
+            }
             k_work_schedule(&img_switch_work, K_SECONDS(60));
         } else {
             k_work_cancel_delayable(&img_switch_work);

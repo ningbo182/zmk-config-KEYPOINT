@@ -247,7 +247,7 @@ static int lpm009m360a_pm_action(const struct device *dev, enum pm_device_action
     switch (action) {
     case PM_DEVICE_ACTION_RESUME:
         LOG_INF("resume");
-        lpm009m360a_exit_sleep(dev);
+        lpm009m360a_init(dev);
         break;
     case PM_DEVICE_ACTION_SUSPEND:
         LOG_INF("suspend");
