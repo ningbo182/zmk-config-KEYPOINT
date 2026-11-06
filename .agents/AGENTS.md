@@ -35,11 +35,12 @@ When working on pointer sensitivity, scrolling speeds, or layer timeouts in this
 
 ## 7. Power Management, Display Behavior, and Zero Wake Lag
 * **Event-Driven Work Queues (No Infinite Polling)**: Never leave delayable work loops polling continuously (e.g. 5ms/10ms loops in `trackpad_led.c` and `custom_led.c`). When LEDs fade to 0, stop rescheduling work. Use event listeners (`zmk_activity_state_changed`, `zmk_position_state_changed`, and motion wakes) to restart work only when needed. This drops idle current from ~15mA down to ~25–30 µA.
-* **Always-On E-Ink / Memory LCD Display (`CONFIG_ZMK_SLEEP=n`)**:
+* **Memory LCD Display & Sleep Modes (`CONFIG_ZMK_SLEEP`)**:
   * The LPM009M360A is a Memory-in-Pixel (MIP) reflective LCD, commonly treated as an "E-ink" screen because of its paper-like appearance and micro-amp static draw.
   * Unlike true electrophoretic e-ink, a Memory LCD requires a tiny retention voltage ($V_{DD}$) on `EXT_POWER` to maintain its internal SRAM cells.
-  * If deep sleep (`CONFIG_ZMK_SLEEP=y`) is enabled, ZMK disables `EXT_POWER` after the timeout, causing the display to fade to black and cutting power to the TrackPoint module (preventing touch wakeup).
-  * To achieve an **always-on display (never black) and zero wake lag**, set `CONFIG_ZMK_SLEEP=n`. System ON tickless idle keeps the Memory LCD on indefinitely, keeps the BLE split link active, and allows the TrackPoint and keys to respond instantly on the very first touch with months of standby battery.
+  * When deep sleep (`CONFIG_ZMK_SLEEP=y`) is enabled, ZMK cuts `EXT_POWER` after the timeout (`CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=3600000`, 1 hour), allowing ultra-low standby current (~15–30 µA) for multi-month battery life.
+  * When in deep sleep: The screen fades to black and the TrackPoint loses power. **Waking from deep sleep requires pressing a mechanical key switch** (which wakes the MCU via GPIO interrupt).
+  * **Display Resume Hardening**: To prevent the peripheral display from staying black or freezing upon wake, `lpm009m360a_pm_action` re-runs `lpm009m360a_init(dev)` on `PM_DEVICE_ACTION_RESUME`, and `peripheral_status.c` forces `draw_top()` and `lv_obj_invalidate()` when entering `ZMK_ACTIVITY_ACTIVE`.
 * **ZMK Studio on Split Peripherals**:
   * ZMK Studio only operates on the central half to manage keymaps; peripherals do not store keymaps.
   * Always set `CONFIG_ZMK_STUDIO=n` on the peripheral half. Enabling Studio RPC threads on the peripheral triggers known power management lockups and HardFaults during low-power transitions.
