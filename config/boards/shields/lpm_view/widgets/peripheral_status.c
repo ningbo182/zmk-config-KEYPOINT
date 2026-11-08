@@ -16,8 +16,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/battery_state_changed.h>
 #include <zmk/split/bluetooth/peripheral.h>
 #include <zmk/events/split_peripheral_status_changed.h>
-#include <zmk/activity.h>
-#include <zmk/events/activity_state_changed.h>
 #include <zmk/usb.h>
 #include <zmk/ble.h>
 
@@ -77,10 +75,6 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
 // ================= 图片切换函数 =================
 static void switch_image(struct k_work *work) {
-    if (zmk_activity_get_state() != ZMK_ACTIVITY_ACTIVE) {
-        return;
-    }
-
     struct zmk_widget_status *widget;
 
     uint8_t new_index;
@@ -151,26 +145,6 @@ static void output_status_update_cb(struct peripheral_status_state state) {
 ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_state,
                             output_status_update_cb, get_state)
 ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
-
-// ================= 活动状态监听 (休眠保护) =================
-static int peripheral_status_activity_cb(const zmk_event_t *eh) {
-    const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
-    if (ev) {
-        if (ev->state == ZMK_ACTIVITY_ACTIVE) {
-            struct zmk_widget_status *widget;
-            SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-                draw_top(widget->obj, widget->cbuf, &widget->state);
-                lv_obj_invalidate(widget->obj);
-            }
-            k_work_schedule(&img_switch_work, K_SECONDS(60));
-        } else {
-            k_work_cancel_delayable(&img_switch_work);
-        }
-    }
-    return ZMK_EV_EVENT_BUBBLE;
-}
-ZMK_LISTENER(widget_peripheral_activity, peripheral_status_activity_cb);
-ZMK_SUBSCRIPTION(widget_peripheral_activity, zmk_activity_state_changed);
 
 // ================= 初始化 =================
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {

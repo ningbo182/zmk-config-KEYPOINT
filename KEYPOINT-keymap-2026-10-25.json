@@ -2,7 +2,7 @@
   "$schema": "https://zitaotech.studio/schemas/keyboard-backup/v2.json",
   "format": "zitaotech-studio-keyboard-backup",
   "version": 2,
-  "exportedAt": "2026-10-27T06:18:29.000Z",
+  "exportedAt": "2026-11-08T03:56:42.000Z",
   "sections": {
     "keymap": true,
     "combos": true,
@@ -120,9 +120,9 @@
             "button": 1
           },
           {
-            "type": "raw",
-            "zmk": "&arrow_ht 0 H",
-            "label": "Arrow HT H"
+            "type": "key",
+            "usage": 11,
+            "usagePage": "keyboard"
           },
           {
             "type": "raw",
@@ -731,9 +731,9 @@
             "button": 1
           },
           {
-            "type": "raw",
-            "zmk": "&arrow_ht 0 H",
-            "label": "Arrow HT H"
+            "type": "key",
+            "usage": 11,
+            "usagePage": "keyboard"
           },
           {
             "type": "raw",

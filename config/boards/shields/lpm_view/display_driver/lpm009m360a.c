@@ -43,9 +43,6 @@ static int lpm009m360a_transmit_hold(const struct device *dev, uint8_t cmd, uint
     int ret;
 
     ret = spi_write_dt(&config->bus, &tx_bufs);
-    if (ret < 0) {
-        return ret;
-    }
     tx_buf.buf = &arg;
     ret = spi_write_dt(&config->bus, &tx_bufs);
     if (ret < 0) {
@@ -247,7 +244,7 @@ static int lpm009m360a_pm_action(const struct device *dev, enum pm_device_action
     switch (action) {
     case PM_DEVICE_ACTION_RESUME:
         LOG_INF("resume");
-        lpm009m360a_init(dev);
+        lpm009m360a_exit_sleep(dev);
         break;
     case PM_DEVICE_ACTION_SUSPEND:
         LOG_INF("suspend");

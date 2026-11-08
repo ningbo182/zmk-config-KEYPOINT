@@ -40,11 +40,4 @@ When working on pointer sensitivity, scrolling speeds, or layer timeouts in this
   * Unlike true electrophoretic e-ink, a Memory LCD requires a tiny retention voltage ($V_{DD}$) on `EXT_POWER` to maintain its internal SRAM cells.
   * When deep sleep (`CONFIG_ZMK_SLEEP=y`) is enabled, ZMK cuts `EXT_POWER` after the timeout (`CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=3600000`, 1 hour), allowing ultra-low standby current (~15–30 µA) for multi-month battery life.
   * When in deep sleep: The screen fades to black and the TrackPoint loses power. **Waking from deep sleep requires pressing a mechanical key switch** (which wakes the MCU via GPIO interrupt).
-  * **Display Resume Hardening**: To prevent the peripheral display from staying black or freezing upon wake, `lpm009m360a_pm_action` re-runs `lpm009m360a_init(dev)` on `PM_DEVICE_ACTION_RESUME`, and `peripheral_status.c` forces `draw_top()` and `lv_obj_invalidate()` when entering `ZMK_ACTIVITY_ACTIVE`.
-* **ZMK Studio on Split Peripherals**:
-  * ZMK Studio only operates on the central half to manage keymaps; peripherals do not store keymaps.
-  * Always set `CONFIG_ZMK_STUDIO=n` on the peripheral half. Enabling Studio RPC threads on the peripheral triggers known power management lockups and HardFaults during low-power transitions.
-* **Background Display Timers**:
-  * Periodic widget/image switch work items (such as `img_switch_work` in `peripheral_status.c`) must be gated with `zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE` and cancelled during idle/sleep to avoid waking the CPU or pushing SPI transactions to unpowered displays.
-* **EXT_POWER Sequencing**:
-  * Always declare `init-delay-ms = <50>;` on `EXT_POWER` nodes so power rails and display controllers have time to stabilize before SPI/I2C communication commences.
+  * **Display Wakeup Integrity**: In `lpm009m360a.c`, `PM_DEVICE_ACTION_RESUME` must call `lpm009m360a_exit_sleep(dev)`. Never call `lpm009m360a_init(dev)` or `reset_display` on resume, because `LPM009M360A_CMD_ALL_CLEAR` actively wipes the screen to black without LVGL knowing, permanently blacking out the screen upon wake. Never gate `img_switch_work` with central-only activity listeners on the peripheral.
