@@ -369,7 +369,6 @@ static void trackpoint_work_cb(struct k_work *work) {
     int8_t dy = (int8_t)total_dy;
 
     last_activity_time = now;
-    custom_led_wake();
 
     /* ThinkPad-style motion smoothing & stroke isolation:
      * If paused (>30ms), reset filter and residue to ensure a clean,
