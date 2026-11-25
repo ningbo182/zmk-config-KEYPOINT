@@ -289,11 +289,11 @@ static void a320_work_cb(struct k_work *work) {
     int8_t dx = 0, dy = 0;
 
     /* ========= ⭐ NEW: DRAIN MODE ========= */
-    int8_t total_dx = 0;
-    int8_t total_dy = 0;
+    int16_t total_dx = 0;
+    int16_t total_dy = 0;
     bool got_data = false;
 
-    while (1) {
+    for (int drain = 0; drain < 5; drain++) {
         int ret = a320_read_packet(dev, &dx, &dy);
 
         if (ret != 0) {
@@ -308,6 +308,17 @@ static void a320_work_cb(struct k_work *work) {
         total_dx += dx;
         total_dy += dy;
         got_data = true;
+    }
+
+    if (total_dx > 127) {
+        total_dx = 127;
+    } else if (total_dx < -127) {
+        total_dx = -127;
+    }
+    if (total_dy > 127) {
+        total_dy = 127;
+    } else if (total_dy < -127) {
+        total_dy = -127;
     }
 
     /* ========= ⭐ TOUCH TIME TRACK ========= */
@@ -327,8 +338,8 @@ static void a320_work_cb(struct k_work *work) {
         return;
     }
 
-    dx = total_dx;
-    dy = total_dy;
+    dx = (int8_t)total_dx;
+    dy = (int8_t)total_dy;
 
     /* ========= scroll / arrow mode 切换检测 ========= */
     bool just_enter_scroll = scroll_key_pressed && !last_scroll_key_pressed;

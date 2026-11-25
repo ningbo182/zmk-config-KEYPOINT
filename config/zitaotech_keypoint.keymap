@@ -35,7 +35,7 @@
         tdRMCLK: tap_dance_R_LMouse {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
-            tapping-term-ms = <400>;
+            tapping-term-ms = <200>;
             bindings = <&mkp RCLK>, <&mkp MCLK>;
         };
     };
@@ -103,7 +103,7 @@
         tdLMCLK: tap_dance_L_LMouse {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
-            tapping-term-ms = <400>;
+            tapping-term-ms = <200>;
             bindings = <&mkp MB3>, <&mkp MB2>;
         };
 
