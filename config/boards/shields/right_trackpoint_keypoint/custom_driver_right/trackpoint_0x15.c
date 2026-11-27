@@ -91,23 +91,6 @@ static bool last_scroll_key_pressed = false; // ★ NEW
 static bool last_arrow_key_pressed = false;
 uint32_t last_packet_time = 0;
 
-/* ==== HID indicators ==== */
-static zmk_hid_indicators_t current_indicators;
-#define HID_INDICATORS_CAPS_LOCK (1 << 1)
-/* =========================
- *   HID indicator listener
- * ========================= */
-static int hid_indicators_listener(const zmk_event_t *eh) {
-    const struct zmk_hid_indicators_changed *ev = as_zmk_hid_indicators_changed(eh);
-    if (ev) {
-        current_indicators = ev->indicators;
-    }
-    return ZMK_EV_EVENT_BUBBLE;
-}
-
-ZMK_LISTENER(a320_hid_listener, hid_indicators_listener);
-ZMK_SUBSCRIPTION(a320_hid_listener, zmk_hid_indicators_changed);
-
 /* ========= Space + Slow key listener ========= */
 static int special_key_listener_cb(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
@@ -360,6 +343,12 @@ static void trackpoint_work_cb(struct k_work *work) {
         return;
     }
 
+    /* If motion INT is still active (LOW -> logical 1) after draining 5 packets,
+     * schedule another drain pass so edge-triggered IRQ can never stall. */
+    if (gpio_pin_get_dt(&cfg->motion_gpio) > 0) {
+        k_work_submit_to_queue(&tp_workq, &data->work);
+    }
+
     if (total_dx > 127) total_dx = 127;
     else if (total_dx < -127) total_dx = -127;
     if (total_dy > 127) total_dy = 127;
@@ -379,6 +368,10 @@ static void trackpoint_work_cb(struct k_work *work) {
         data->filtered_dy = (float)dy;
         mouse_residual_x = 0;
         mouse_residual_y = 0;
+        data->scroll_residue_x = 0;
+        data->scroll_residue_y = 0;
+        data->arrow_residue_x = 0;
+        data->arrow_residue_y = 0;
     } else {
         data->filtered_dx = TP_SMOOTH_ALPHA * (float)dx + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dx;
         data->filtered_dy = TP_SMOOTH_ALPHA * (float)dy + (1.0f - TP_SMOOTH_ALPHA) * data->filtered_dy;
@@ -439,6 +432,11 @@ static void trackpoint_work_cb(struct k_work *work) {
                            INPUT_BTN_2,  // 上
                            INPUT_BTN_3); // 下
     } else if (scroll_key_pressed) {
+        if (!last_scroll_key_pressed) {
+            data->scroll_residue_x = 0;
+            data->scroll_residue_y = 0;
+        }
+
         float abs_dx = fabsf(data->filtered_dx);
         float abs_dy = fabsf(data->filtered_dy);
 
